@@ -6,3 +6,5 @@ __pycache__
 .ruff_cache
 *.xlsx
 .streamlit/
+_eda.sql
+filters_and*
