@@ -4,6 +4,16 @@
  * First it gets the games for each player in the last year from fixtures_results table. Here the idea is to only use the unique players involded in the ixrute for the next days
  * Then it creates atable specific to sourfcace and another to general results
  * 
+ * 
+ * chequear:
+ *  - incluimos awarde y walk over seguro?
+ *  - dejar fuera exhibition?
+ *  - de dedjar fueura doblels no tendriamoms h2h para dbles y no tiene sentido, el analisis se hace for player key q es difefrente en dingels y dobles
+ * 
+ * correjido:
+ * - estaba dejando fuera awarded y walk over
+ * - se quito exhibition games
+ * 
  * */
 
 drop table if exists player_results_tmp;
@@ -16,8 +26,8 @@ with all_player_ids as (
         union
         select second_player_key as player_id from tenis_api.fixtures_for_today
 --        	where event_status IN ('Finished', 'Retired', 'Awarded', 'Walk Over') -- getting only data from table with a single event date
-		-- union
-		-- select '2382' as player_id -- testing
+--		 union
+--		 select '1905' as player_id -- testing
     ) a
 ),
 no_dups as (
@@ -29,7 +39,8 @@ no_dups as (
 			and event_date::date between current_date-365 and current_date -- for yearly ---- ver si meto fecha especifica (aunque si es carga diaria no iria, solo en manual)
 --			and event_type_type='Atp Singles'
 			and event_status IN ('Finished', 'Retired', 'Awarded', 'Walk Over') --- aadding here, not above since i need all players where game is not finished mainly (games for today)
-		) a
+			and lower(event_type_type) not like '%exhibition%' --- added to remomve ehibition games
+			) a
 	where rn=1
 -- 	and first_player_key='2382'
 ) -- select * from no_dups;
@@ -50,10 +61,10 @@ player_results as (
     from all_player_ids p
     join no_dups f 
         on (f.first_player_key = p.player_id or f.second_player_key = p.player_id)
-    where f.event_status IN ('Finished', 'Retired')
+--    where f.event_status IN ('Finished', 'Retired') --- added comment, already applying filtleer above
 )
 select * from player_results
---where player_id=1961
+--where player_id=1905
 ;
 
 

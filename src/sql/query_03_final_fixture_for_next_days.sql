@@ -18,6 +18,9 @@
  * 
  * add ODDS!! para cual, todos y duplico linea por cada uno??
  * 
+ *  * correjido:
+ * - event_type_2, se arreglo la query para generar lal col, estaban quedndo valores extra ya q qeudbabn espacios en blanco o linas q ahcianq parecieran difefrentes categorias
+ * 
  * */
 
 
@@ -48,7 +51,7 @@ with fixture_data as (
 			when a.event_type_type like '%Doubles%' then 'Doubles'
 			else 'unkn'
 		end as event_type,
-		replace(replace(a.event_type_type, ' Singles',''),'Doubles','') as event_type_2,
+		trim(replace(replace(replace(a.event_type_type, ' Singles',''),' Doubles',''),'-','')) as event_type_2,
 		a.event_type_type,
 		case 
 			when a.event_type_type like '%Men%' or a.event_type_type like '%Atp%' then 'Men'

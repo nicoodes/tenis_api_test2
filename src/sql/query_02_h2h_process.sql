@@ -1,3 +1,13 @@
+/*
+ * chequear:
+ *  - se quitan de aca tmb partidos de exhibicion?
+ * 
+ * correjido:
+ * - estaba dejando fuera awarded y walk over
+ * - se quito exhibition games
+ * 
+ * */
+
 --- query
 drop table if exists tenis_api.stg_h2h_for_today_processed;
 create table tenis_api.stg_h2h_for_today_processed as
@@ -6,14 +16,16 @@ with base_data_h2h as (
         event_key,event_date,event_first_player,first_player_key,event_second_player,second_player_key,
         event_final_result,event_winner,
 		first_player_key as p1,
-		case 
+		case
 			when event_winner='First Player' then 1 else 0
-		end as p1_win,
+		end as p1_win,	
 		second_player_key as p2,
-		case 
+		case
 			when event_winner='Second Player' then 1 else 0
 		end as p2_win
 	from tenis_api.h2h_for_today2
+	where lower(event_type_type) not like '%exhibition%'
+	--- add filter to leave out exhibition games?
 	),
 right_players as (
 	select *,
