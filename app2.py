@@ -379,7 +379,7 @@ display_columns = [col for col in display_columns if col in filtered_df.columns]
 filtered_df_columns_needed = filtered_df[display_columns].copy()
 
 
-display_columns_tsv = [
+display_columns_tsv_filter = [
   "event_date",
   "event_first_player",
   "event_second_player",
@@ -395,8 +395,10 @@ display_columns_tsv = [
   "p2_rend_sup", #*
   "p2_points", #*
 ]
-display_columns_tsv = [col for col in display_columns_tsv if col in filtered_df.columns]
-filtered_df_tsv = filtered_df[display_columns_tsv].copy()
+display_columns_tsv = [col for col in display_columns_tsv_filter if col in filtered_df.columns]
+# filtered_df_tsv = filtered_df[display_columns_tsv].copy()
+
+
 
 
 with tab1:
@@ -573,7 +575,8 @@ with tab1:
     include_odds = st.toggle("Include odds", value=False)
     if include_odds:
       odds_columns = ["p1_odds", "p2_odds"]
-      insert_at = display_columns_tsv.index("tournament_sourface") + 1
+      # insert_at = display_columns_tsv.index("tournament_sourface") + 1
+      insert_at = display_columns_tsv.index("p2_points") + 1
       for col in reversed(odds_columns):
         if col in filtered_df.columns:
           display_columns_tsv.insert(insert_at, col)
@@ -601,7 +604,34 @@ with tab1:
             )
             selected_index = label_to_index[selected_label]
             selected_row = filtered_df.loc[selected_index]
-        tsv_line = "\t".join(str(v) for v in selected_row[display_columns_tsv].values)
+
+        tsv_row = selected_row.copy()
+        tsv_percentage_cols = [
+          "p1_perc_h2h",
+          "p2_perc_h2h",
+          "p1_rend_all",
+          "p1_rend_sup",
+          "p2_rend_all",
+          "p2_rend_sup",
+        ]
+        for perc_col in tsv_percentage_cols:
+          if perc_col in tsv_row.index:
+            perc_value = pd.to_numeric(tsv_row[perc_col], errors="coerce")
+            if pd.isna(perc_value):
+              tsv_row[perc_col] = "-"
+            else:
+              percentage_text = f"{perc_value * 100:.2f}".replace(".", ",")
+              tsv_row[perc_col] = f"{percentage_text}%"
+
+        for odds_col in ["p1_odds", "p2_odds"]:
+          if odds_col in tsv_row.index:
+            odds_value = pd.to_numeric(tsv_row[odds_col], errors="coerce")
+            if pd.isna(odds_value):
+              tsv_row[odds_col] = "-"
+            else:
+              tsv_row[odds_col] = f"{odds_value:.2f}".replace(".", ",")
+
+        tsv_line = "\t".join(str(v) for v in tsv_row[display_columns_tsv].values)
         st.markdown(
             f"""
             <style>
