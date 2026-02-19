@@ -12,7 +12,7 @@
  * 
  * correjido:
  * - estaba dejando fuera awarded y walk over
- * - se quiuto exhibition games
+ * - se quito exhibition games
  * 
  * */
 

@@ -2,6 +2,10 @@
  * chequear:
  *  - se quitan de aca tmb partidos de exhibicion?
  * 
+ * correjido:
+ * - estaba dejando fuera awarded y walk over
+ * - se quito exhibition games
+ * 
  * */
 
 --- query
@@ -20,6 +24,7 @@ with base_data_h2h as (
 			when event_winner='Second Player' then 1 else 0
 		end as p2_win
 	from tenis_api.h2h_for_today2
+	where lower(event_type_type) not like '%exhibition%'
 	--- add filter to leave out exhibition games?
 	),
 right_players as (
