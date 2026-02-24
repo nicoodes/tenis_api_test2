@@ -131,6 +131,24 @@ def format_export_dataframe(df: pd.DataFrame, use_spanish_format: bool) -> pd.Da
   return export_df
 
 
+def add_empty_line_after_each_csv_row(csv_text: str) -> str:
+  if not csv_text:
+    return csv_text
+  normalized_text = csv_text.replace("\r\n", "\n")
+  lines = normalized_text.split("\n")
+  if len(lines) <= 1:
+    return csv_text
+
+  output_lines = [lines[0]]
+  data_lines = lines[1:]
+  for index, line in enumerate(data_lines):
+    output_lines.append(line)
+    if line and index < len(data_lines) - 1:
+      output_lines.append("")
+
+  return "\n".join(output_lines)
+
+
 def require_password_login() -> None:
   if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -365,9 +383,9 @@ col2.metric("Tournaments", filtered_df["tournament_name"].nunique())
 # Last refresh based on load_timestamp (max)
 if "load_timestamp" in filtered_df.columns and not filtered_df.empty:
     last_refresh = pd.to_datetime(filtered_df["load_timestamp"]).max()
-    col3.metric("Last DB refresh", last_refresh.strftime("%Y-%m-%d %H:%M:%S"))
+    col3.metric("Last DB refresh (UTC)", last_refresh.strftime("%Y-%m-%d %H:%M:%S"))
 else:
-    col3.metric("Last DB refresh", "-")
+    col3.metric("Last DB refresh (UTC)", "-")
 
 # Tabs
 
@@ -629,8 +647,15 @@ with tab1:
       value=True,
       help="Formats selected numeric columns for Spanish locale at download time only.",
     )
+    export_double_line_spacing = st.toggle(
+      "Empty line after each row",
+      value=True,
+      help="Adds one blank line between rows in the downloaded CSV.",
+    )
     export_df = format_export_dataframe(filtered_df_columns_needed, export_spanish_format)
     export_csv = export_df.to_csv(index=False, sep=",", quoting=csv.QUOTE_ALL)
+    if export_double_line_spacing:
+      export_csv = add_empty_line_after_each_csv_row(export_csv)
     st.download_button(
       "Download filtered data",
       data=export_csv.encode("utf-8-sig"),
