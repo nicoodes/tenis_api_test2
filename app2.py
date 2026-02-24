@@ -2,6 +2,7 @@
 import datetime
 import importlib
 import os
+import csv
 from datetime import timedelta
 import logging
 import pandas as pd
@@ -446,7 +447,8 @@ with tab1:
       table_columns = display_columns_tsv.copy()
       odds_columns = ["p1_odds", "p2_odds"]
       if "tournament_sourface" in table_columns:
-        insert_at = table_columns.index("tournament_sourface") + 1
+        # insert_at = table_columns.index("tournament_sourface") + 1
+        insert_at = table_columns.index("p2_points") + 1
       else:
         insert_at = 0
       for col in reversed(odds_columns):
@@ -616,8 +618,7 @@ with tab1:
       help="Formats selected numeric columns for Spanish locale at download time only.",
     )
     export_df = format_export_dataframe(filtered_df_columns_needed, export_spanish_format)
-    export_separator = ";" if export_spanish_format else ","
-    export_csv = export_df.to_csv(index=False, sep=export_separator)
+    export_csv = export_df.to_csv(index=False, sep=",", quoting=csv.QUOTE_ALL)
     st.download_button(
       "Download filtered data",
       data=export_csv.encode("utf-8-sig"),
