@@ -35,6 +35,7 @@ PERCENTAGE_EXPORT_COLUMNS = [
   "p2_rend_sup",
 ]
 ODDS_EXPORT_COLUMNS = ["p1_odds", "p2_odds"]
+DATE_EXPORT_COLUMNS = ["event_date", "event_date_only"]
 
 @st.cache_data
 def load_data(sql_filename: str) -> pd.DataFrame:
@@ -101,10 +102,21 @@ def format_number_spanish(value, multiply_by_100: bool = False):
   return us_format.replace(",", "_").replace(".", ",").replace("_", ".")
 
 
+def format_date_day_month_year(value):
+  parsed_date = pd.to_datetime(value, errors="coerce")
+  if pd.isna(parsed_date):
+    return value
+  return parsed_date.strftime("%d/%m/%Y")
+
+
 def format_export_dataframe(df: pd.DataFrame, use_spanish_format: bool) -> pd.DataFrame:
   export_df = df.copy()
   if not use_spanish_format:
     return export_df
+
+  for column_name in DATE_EXPORT_COLUMNS:
+    if column_name in export_df.columns:
+      export_df[column_name] = export_df[column_name].apply(format_date_day_month_year)
 
   for column_name in PERCENTAGE_EXPORT_COLUMNS:
     if column_name in export_df.columns:
@@ -662,6 +674,8 @@ with tab1:
             selected_row = filtered_df.loc[selected_index]
 
         tsv_row = selected_row.copy()
+        if "event_date" in tsv_row.index:
+          tsv_row["event_date"] = format_date_day_month_year(tsv_row["event_date"])
         tsv_percentage_cols = [
           "p1_perc_h2h",
           "p2_perc_h2h",
