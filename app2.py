@@ -2,6 +2,7 @@
 import datetime
 import importlib
 import os
+import csv
 from datetime import timedelta
 import logging
 import pandas as pd
@@ -24,6 +25,17 @@ EVENT_STATUS_COLORS = {
   "Interrupted": "#8D3399",
   "Cancelled": "#cc0058",
 }
+
+PERCENTAGE_EXPORT_COLUMNS = [
+  "p1_perc_h2h",
+  "p2_perc_h2h",
+  "p1_rend_all",
+  "p1_rend_sup",
+  "p2_rend_all",
+  "p2_rend_sup",
+]
+ODDS_EXPORT_COLUMNS = ["p1_odds", "p2_odds"]
+DATE_EXPORT_COLUMNS = ["event_date", "event_date_only"]
 
 @st.cache_data
 def load_data(sql_filename: str) -> pd.DataFrame:
@@ -78,6 +90,63 @@ def filter_df(
   if surfaces:
     out = out[out["tournament_sourface"].isin(surfaces)]
   return out
+
+
+def format_number_spanish(value, multiply_by_100: bool = False):
+  numeric_value = pd.to_numeric(value, errors="coerce")
+  if pd.isna(numeric_value):
+    return value
+  if multiply_by_100:
+    numeric_value = numeric_value * 100
+  us_format = f"{numeric_value:,.2f}"
+  return us_format.replace(",", "_").replace(".", ",").replace("_", ".")
+
+
+def format_date_day_month_year(value):
+  parsed_date = pd.to_datetime(value, errors="coerce")
+  if pd.isna(parsed_date):
+    return value
+  return parsed_date.strftime("%d/%m/%Y")
+
+
+def format_export_dataframe(df: pd.DataFrame, use_spanish_format: bool) -> pd.DataFrame:
+  export_df = df.copy()
+  if not use_spanish_format:
+    return export_df
+
+  for column_name in DATE_EXPORT_COLUMNS:
+    if column_name in export_df.columns:
+      export_df[column_name] = export_df[column_name].apply(format_date_day_month_year)
+
+  for column_name in PERCENTAGE_EXPORT_COLUMNS:
+    if column_name in export_df.columns:
+      export_df[column_name] = export_df[column_name].apply(
+        lambda value: format_number_spanish(value, multiply_by_100=True)
+      )
+
+  for column_name in ODDS_EXPORT_COLUMNS:
+    if column_name in export_df.columns:
+      export_df[column_name] = export_df[column_name].apply(format_number_spanish)
+
+  return export_df
+
+
+def add_empty_line_after_each_csv_row(csv_text: str) -> str:
+  if not csv_text:
+    return csv_text
+  normalized_text = csv_text.replace("\r\n", "\n")
+  lines = normalized_text.split("\n")
+  if len(lines) <= 1:
+    return csv_text
+
+  output_lines = [lines[0]]
+  data_lines = lines[1:]
+  for index, line in enumerate(data_lines):
+    output_lines.append(line)
+    if line and index < len(data_lines) - 1:
+      output_lines.append("")
+
+  return "\n".join(output_lines)
 
 
 def require_password_login() -> None:
@@ -314,9 +383,9 @@ col2.metric("Tournaments", filtered_df["tournament_name"].nunique())
 # Last refresh based on load_timestamp (max)
 if "load_timestamp" in filtered_df.columns and not filtered_df.empty:
     last_refresh = pd.to_datetime(filtered_df["load_timestamp"]).max()
-    col3.metric("Last DB refresh", last_refresh.strftime("%Y-%m-%d %H:%M:%S"))
+    col3.metric("Last DB refresh (UTC)", last_refresh.strftime("%Y-%m-%d %H:%M:%S"))
 else:
-    col3.metric("Last DB refresh", "-")
+    col3.metric("Last DB refresh (UTC)", "-")
 
 # Tabs
 
@@ -408,7 +477,8 @@ with tab1:
       table_columns = display_columns_tsv.copy()
       odds_columns = ["p1_odds", "p2_odds"]
       if "tournament_sourface" in table_columns:
-        insert_at = table_columns.index("tournament_sourface") + 1
+        # insert_at = table_columns.index("tournament_sourface") + 1
+        insert_at = table_columns.index("p2_points") + 1
       else:
         insert_at = 0
       for col in reversed(odds_columns):
@@ -571,6 +641,29 @@ with tab1:
         }
     )
     st.markdown("---")
+    st.subheader("Download table")
+    export_spanish_format = st.toggle(
+      "Spanish spreadsheet format",
+      value=True,
+      help="Formats selected numeric columns for Spanish locale at download time only.",
+    )
+    export_double_line_spacing = st.toggle(
+      "Empty line after each row",
+      value=True,
+      help="Adds one blank line between rows in the downloaded CSV.",
+    )
+    export_df = format_export_dataframe(filtered_df_columns_needed, export_spanish_format)
+    export_csv = export_df.to_csv(index=False, sep=",", quoting=csv.QUOTE_ALL)
+    if export_double_line_spacing:
+      export_csv = add_empty_line_after_each_csv_row(export_csv)
+    st.download_button(
+      "Download filtered data",
+      data=export_csv.encode("utf-8-sig"),
+      file_name="tennis_fixtures_export.csv",
+      mime="text/csv",
+      use_container_width=True,
+    )
+    st.markdown("---")
     st.subheader("Copy Game Row (TSV)")
     include_odds = st.toggle("Include odds", value=False)
     if include_odds:
@@ -606,6 +699,8 @@ with tab1:
             selected_row = filtered_df.loc[selected_index]
 
         tsv_row = selected_row.copy()
+        if "event_date" in tsv_row.index:
+          tsv_row["event_date"] = format_date_day_month_year(tsv_row["event_date"])
         tsv_percentage_cols = [
           "p1_perc_h2h",
           "p2_perc_h2h",
