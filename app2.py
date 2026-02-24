@@ -25,6 +25,16 @@ EVENT_STATUS_COLORS = {
   "Cancelled": "#cc0058",
 }
 
+PERCENTAGE_EXPORT_COLUMNS = [
+  "p1_perc_h2h",
+  "p2_perc_h2h",
+  "p1_rend_all",
+  "p1_rend_sup",
+  "p2_rend_all",
+  "p2_rend_sup",
+]
+ODDS_EXPORT_COLUMNS = ["p1_odds", "p2_odds"]
+
 @st.cache_data
 def load_data(sql_filename: str) -> pd.DataFrame:
   res = run_sql_file(sql_filename)
@@ -78,6 +88,34 @@ def filter_df(
   if surfaces:
     out = out[out["tournament_sourface"].isin(surfaces)]
   return out
+
+
+def format_number_spanish(value, multiply_by_100: bool = False):
+  numeric_value = pd.to_numeric(value, errors="coerce")
+  if pd.isna(numeric_value):
+    return value
+  if multiply_by_100:
+    numeric_value = numeric_value * 100
+  us_format = f"{numeric_value:,.2f}"
+  return us_format.replace(",", "_").replace(".", ",").replace("_", ".")
+
+
+def format_export_dataframe(df: pd.DataFrame, use_spanish_format: bool) -> pd.DataFrame:
+  export_df = df.copy()
+  if not use_spanish_format:
+    return export_df
+
+  for column_name in PERCENTAGE_EXPORT_COLUMNS:
+    if column_name in export_df.columns:
+      export_df[column_name] = export_df[column_name].apply(
+        lambda value: format_number_spanish(value, multiply_by_100=True)
+      )
+
+  for column_name in ODDS_EXPORT_COLUMNS:
+    if column_name in export_df.columns:
+      export_df[column_name] = export_df[column_name].apply(format_number_spanish)
+
+  return export_df
 
 
 def require_password_login() -> None:
@@ -569,6 +607,23 @@ with tab1:
                 required=True,
             ),
         }
+    )
+    st.markdown("---")
+    st.subheader("Download table")
+    export_spanish_format = st.toggle(
+      "Spanish spreadsheet format",
+      value=True,
+      help="Formats selected numeric columns for Spanish locale at download time only.",
+    )
+    export_df = format_export_dataframe(filtered_df_columns_needed, export_spanish_format)
+    export_separator = ";" if export_spanish_format else ","
+    export_csv = export_df.to_csv(index=False, sep=export_separator)
+    st.download_button(
+      "Download filtered data",
+      data=export_csv.encode("utf-8-sig"),
+      file_name="tennis_fixtures_export.csv",
+      mime="text/csv",
+      use_container_width=True,
     )
     st.markdown("---")
     st.subheader("Copy Game Row (TSV)")
