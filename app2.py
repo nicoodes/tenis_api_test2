@@ -716,12 +716,11 @@ with tab1:
         ]
         for perc_col in tsv_percentage_cols:
           if perc_col in tsv_row.index:
-            perc_value = pd.to_numeric(tsv_row[perc_col], errors="coerce")
-            if pd.isna(perc_value):
+            formatted_percentage = format_percentage_spanish(tsv_row[perc_col])
+            if pd.isna(pd.to_numeric(tsv_row[perc_col], errors="coerce")):
               tsv_row[perc_col] = "-"
             else:
-              percentage_text = f"{perc_value * 100:.2f}".replace(".", ",")
-              tsv_row[perc_col] = f"{percentage_text}%"
+              tsv_row[perc_col] = formatted_percentage
 
         for odds_col in ["p1_odds", "p2_odds"]:
           if odds_col in tsv_row.index:
