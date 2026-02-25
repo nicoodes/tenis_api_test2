@@ -102,6 +102,13 @@ def format_number_spanish(value, multiply_by_100: bool = False):
   return us_format.replace(",", "_").replace(".", ",").replace("_", ".")
 
 
+def format_percentage_spanish(value):
+  numeric_value = pd.to_numeric(value, errors="coerce")
+  if pd.isna(numeric_value):
+    return value
+  return f"{format_number_spanish(numeric_value, multiply_by_100=True)}%"
+
+
 def format_date_day_month_year(value):
   parsed_date = pd.to_datetime(value, errors="coerce")
   if pd.isna(parsed_date):
@@ -120,9 +127,7 @@ def format_export_dataframe(df: pd.DataFrame, use_spanish_format: bool) -> pd.Da
 
   for column_name in PERCENTAGE_EXPORT_COLUMNS:
     if column_name in export_df.columns:
-      export_df[column_name] = export_df[column_name].apply(
-        lambda value: format_number_spanish(value, multiply_by_100=True)
-      )
+      export_df[column_name] = export_df[column_name].apply(format_percentage_spanish)
 
   for column_name in ODDS_EXPORT_COLUMNS:
     if column_name in export_df.columns:
@@ -711,12 +716,11 @@ with tab1:
         ]
         for perc_col in tsv_percentage_cols:
           if perc_col in tsv_row.index:
-            perc_value = pd.to_numeric(tsv_row[perc_col], errors="coerce")
-            if pd.isna(perc_value):
+            formatted_percentage = format_percentage_spanish(tsv_row[perc_col])
+            if pd.isna(pd.to_numeric(tsv_row[perc_col], errors="coerce")):
               tsv_row[perc_col] = "-"
             else:
-              percentage_text = f"{perc_value * 100:.2f}".replace(".", ",")
-              tsv_row[perc_col] = f"{percentage_text}%"
+              tsv_row[perc_col] = formatted_percentage
 
         for odds_col in ["p1_odds", "p2_odds"]:
           if odds_col in tsv_row.index:
