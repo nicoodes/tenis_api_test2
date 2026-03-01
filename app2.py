@@ -645,6 +645,11 @@ with tab1:
                 help="Odds for player 2",
                 required=True,
             ),
+            "tournament_name": st.column_config.Column(
+                "Tournament",
+                help="Name of the tournament",
+                required=True,
+            ),
         }
     )
     st.markdown("---")
@@ -696,7 +701,9 @@ with tab1:
         row_keys = list(label_to_index.keys())
         selected_row = None
         if table_event and table_event.selection.rows:
-            selected_row = filtered_df.iloc[table_event.selection.rows[0]]
+          selected_pos = table_event.selection.rows[0]
+          if 0 <= selected_pos < len(filtered_df):
+            selected_row = filtered_df.iloc[selected_pos]
         if selected_row is None:
             selected_label = st.selectbox(
                 "Select game",
