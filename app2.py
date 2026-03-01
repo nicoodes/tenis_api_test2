@@ -411,6 +411,7 @@ display_columns = [
 #   "second_player_key",
   "tournament_sourface",
   "tournament_name",
+  "event_type_3",
   "p1_wins_h2h", #*
   "p1_perc_h2h", #*
   "p2_wins_h2h", #*
@@ -420,7 +421,7 @@ display_columns = [
   "p1_points", #*
   "p2_rend_all", #*
   "p2_rend_sup", #*
-  "p2_points", #*
+  "p2_points", #* 
   # "event_type",
   # "event_type_2",
   # "event_type_type",
@@ -454,6 +455,7 @@ filtered_df_columns_needed = filtered_df[display_columns].copy()
 
 
 display_columns_tsv_filter = [
+  "tournament_name",
   "event_date",
   "event_first_player",
   "event_second_player",
