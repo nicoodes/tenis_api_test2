@@ -650,6 +650,11 @@ with tab1:
                 help="Name of the tournament",
                 required=True,
             ),
+            "event_type_3": st.column_config.Column(
+                "Event type",
+                help="Type of the event",
+                required=True,
+            ),
         }
     )
     st.markdown("---")
