@@ -52,6 +52,7 @@ with fixture_data as (
 			else 'unkn'
 		end as event_type,
 		trim(replace(replace(replace(a.event_type_type, ' Singles',''),' Doubles',''),'-','')) as event_type_2,
+		trim(replace(replace(replace(replace(replace(a.event_type_type, ' Singles',''),' Doubles',''),'-',''),'Men',''),'Women','')) as event_type_3,
 		a.event_type_type,
 		case 
 			when a.event_type_type like '%Men%' or a.event_type_type like '%Atp%' then 'Men'
@@ -106,6 +107,7 @@ full_rendim as (
 		tournament_name,
 		event_type,
 		event_type_2,
+		event_type_3,
 		event_type_type,
 		event_gender,
 		----- PLAYER 1

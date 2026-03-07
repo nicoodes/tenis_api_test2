@@ -12,6 +12,7 @@ SELECT
     ,tournament_name
     ,event_type
     ,event_type_2
+    ,event_type_3
     ,event_type_type
     ,event_gender
     ,p1_wins_sourface

@@ -411,6 +411,7 @@ display_columns = [
 #   "second_player_key",
   "tournament_sourface",
   "tournament_name",
+  "event_type_3",
   "p1_wins_h2h", #*
   "p1_perc_h2h", #*
   "p2_wins_h2h", #*
@@ -420,7 +421,7 @@ display_columns = [
   "p1_points", #*
   "p2_rend_all", #*
   "p2_rend_sup", #*
-  "p2_points", #*
+  "p2_points", #* 
   # "event_type",
   # "event_type_2",
   # "event_type_type",
@@ -454,6 +455,7 @@ filtered_df_columns_needed = filtered_df[display_columns].copy()
 
 
 display_columns_tsv_filter = [
+  "tournament_name",
   "event_date",
   "event_first_player",
   "event_second_player",
@@ -643,6 +645,16 @@ with tab1:
                 help="Odds for player 2",
                 required=True,
             ),
+            "tournament_name": st.column_config.Column(
+                "Tournament",
+                help="Name of the tournament",
+                required=True,
+            ),
+            "event_type_3": st.column_config.Column(
+                "Event type",
+                help="Type of the event",
+                required=True,
+            ),
         }
     )
     st.markdown("---")
@@ -694,7 +706,9 @@ with tab1:
         row_keys = list(label_to_index.keys())
         selected_row = None
         if table_event and table_event.selection.rows:
-            selected_row = filtered_df.iloc[table_event.selection.rows[0]]
+          selected_pos = table_event.selection.rows[0]
+          if 0 <= selected_pos < len(filtered_df):
+            selected_row = filtered_df.iloc[selected_pos]
         if selected_row is None:
             selected_label = st.selectbox(
                 "Select game",
