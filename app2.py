@@ -225,12 +225,12 @@ if "auto_refresh_done" not in st.session_state:
         date_stop=yesterday,
       )
       get_fixtures_today(
-        date_start=today,
+        date_start=today - timedelta(days=1),
         date_stop=today + timedelta(days=2),
         table_name="fixtures_for_today",
       )
       get_odds(
-        date_start=today,
+        date_start=today - timedelta(days=1),
         date_stop=today + timedelta(days=5),
         table_name="odds_for_today",
       )
@@ -837,7 +837,7 @@ with tab2:
 
       if refresh_daily_fixture:
         get_fixtures_today(
-          date_start=today,
+          date_start=today - timedelta(days=1),
           date_stop=today + timedelta(days=days),
           table_name="fixtures_for_today",
           fetch_h2h=refresh_h2h,
@@ -853,7 +853,7 @@ with tab2:
       
       if refresh_odds:
         get_odds(
-          date_start=today,
+          date_start=today - timedelta(days=1),
           date_stop=today + timedelta(days=5),
           table_name="odds_for_today",
         )

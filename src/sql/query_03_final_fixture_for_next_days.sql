@@ -23,10 +23,12 @@
  * 
  * */
 
-
+begin;
 --- query
-drop table if exists tenis_api.main_todays_games_details;
-create table tenis_api.main_todays_games_details as
+--drop table if exists tenis_api.main_todays_games_details;
+--create table tenis_api.main_todays_games_details as
+delete from tenis_api.main_todays_games_details;
+insert into tenis_api.main_todays_games_details
 with fixture_data as (
 	select
 		event_key,event_date,event_time,event_first_player,
@@ -142,7 +144,7 @@ left join tenis_api.odds_for_today o
 		on f.event_key=o.event_key
 		and betting_house='bet365';
 
-
+commit;
 
 --select * from tenis_api.main_todays_games_details;	
 --select count(*) from tenis_api.main_todays_games_details;
