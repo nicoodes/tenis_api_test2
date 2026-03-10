@@ -25,6 +25,9 @@ SUMMARY_COLUMNS = [
   "jugador_a_apostar_cons",
   "monto_apuesta_vb",
   "monto_apuesta_cons",
+  "p1_odds",
+  "p2_odds",
+  "flag_low_bet_value",
 ]
 
 
@@ -36,6 +39,22 @@ def _filter_equals(df: pd.DataFrame, column_name: str, selected_value: str):
   if column_name not in df.columns or selected_value == "All":
     return df
   return df[df[column_name] == selected_value]
+
+
+def _flag_to_binary(value):
+  if pd.isna(value):
+    return None
+  if isinstance(value, bool):
+    return 1 if value else 0
+  try:
+    return 1 if int(float(value)) == 1 else 0
+  except (TypeError, ValueError):
+    text = str(value).strip().lower()
+    if text in {"1", "true", "t", "yes", "y"}:
+      return 1
+    if text in {"0", "false", "f", "no", "n"}:
+      return 0
+    return None
 
 
 def _build_filters(df: pd.DataFrame) -> pd.DataFrame:
@@ -79,7 +98,7 @@ def _build_filters(df: pd.DataFrame) -> pd.DataFrame:
 
   type_filtered_df = _filter_equals(date_filtered_df, "event_type", selected_event_type)
 
-  row_2_col_1, row_2_col_2 = st.columns(2)
+  row_2_col_1, row_2_col_2, row_2_col_3 = st.columns(3)
 
   event_status_options = ["All"]
   if "event_status" in type_filtered_df.columns:
@@ -94,17 +113,33 @@ def _build_filters(df: pd.DataFrame) -> pd.DataFrame:
 
   status_filtered_df = _filter_equals(type_filtered_df, "event_status", selected_event_status)
 
+  selected_flag_filter = "All"
+  flag_filtered_df = status_filtered_df
+  if "flag_low_bet_value" in status_filtered_df.columns:
+    selected_flag_filter = row_2_col_2.pills(
+      "flag_low_bet_value",
+      options=["All", "Low", "Ok"],
+      default="All",
+      selection_mode="single",
+      key="tab5_filter_low_bet_flag",
+    )
+    normalized_flag = status_filtered_df["flag_low_bet_value"].apply(_flag_to_binary)
+    if selected_flag_filter == "Low":
+      flag_filtered_df = status_filtered_df[normalized_flag == 1]
+    elif selected_flag_filter == "Ok":
+      flag_filtered_df = status_filtered_df[normalized_flag == 0]
+
   tournament_options = []
-  if "tournament_name" in status_filtered_df.columns:
-    tournament_options = _sorted_unique_values(status_filtered_df["tournament_name"])
-  selected_tournaments = row_2_col_2.multiselect(
+  if "tournament_name" in flag_filtered_df.columns:
+    tournament_options = _sorted_unique_values(flag_filtered_df["tournament_name"])
+  selected_tournaments = row_2_col_3.multiselect(
     "tournament_name",
     options=tournament_options,
     default=[],
     key="tab5_filter_tournament_name",
   )
 
-  out = status_filtered_df
+  out = flag_filtered_df
   if selected_tournaments and "tournament_name" in out.columns:
     out = out[out["tournament_name"].isin(selected_tournaments)]
 
@@ -156,8 +191,14 @@ def render_tab_05(run_sql_file_fn) -> None:
     st.warning("Missing columns in summary table: " + ", ".join(missing_summary_columns))
 
   if summary_columns:
+    summary_df = filtered_df[summary_columns].copy()
+    if "flag_low_bet_value" in summary_df.columns:
+      summary_df["flag_low_bet_value"] = summary_df["flag_low_bet_value"].apply(
+        lambda value: True if _flag_to_binary(value) == 1 else False
+      )
+
     st.dataframe(
-      filtered_df[summary_columns],
+      summary_df,
       use_container_width=True,
       hide_index=True,
       height=460,
@@ -221,11 +262,26 @@ def render_tab_05(run_sql_file_fn) -> None:
           format="%.2f",
           required=True,
         ),
+        "flag_low_bet_value": st.column_config.CheckboxColumn(
+          "Low Bet Flag",
+          help="Checked when low bet value flag is active",
+          required=False,
+        ),
         "event_status": st.column_config.MultiselectColumn(
           "Event Status",
           help="Event status",
           options=list(EVENT_STATUS_COLORS.keys()),
           color=list(EVENT_STATUS_COLORS.values()),
+        ),
+        "p1_odds": st.column_config.Column(
+            "P1 Odds",
+            help="Odds for player 1",
+            required=True,
+        ),
+        "p2_odds": st.column_config.Column(
+            "P2 Odds",
+            help="Odds for player 2",
+            required=True,
         ),
       },
     )
