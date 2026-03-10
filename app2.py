@@ -670,7 +670,11 @@ with tab1:
       value=True,
       help="Adds one blank line between rows in the downloaded CSV.",
     )
-    export_df = format_export_dataframe(filtered_df_columns_needed, export_spanish_format)
+    export_df = filtered_df_columns_needed.copy()
+    sort_columns = [col for col in ["tournament_name", "event_time"] if col in export_df.columns]
+    if sort_columns:
+      export_df = export_df.sort_values(by=sort_columns)
+    export_df = format_export_dataframe(export_df, export_spanish_format)
     export_csv = export_df.to_csv(index=False, sep=",", quoting=csv.QUOTE_ALL)
     if export_double_line_spacing:
       export_csv = add_empty_line_after_each_csv_row(export_csv)
