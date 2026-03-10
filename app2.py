@@ -10,6 +10,7 @@ import streamlit as st
 
 from src.tenis_api import get_fixtures_history, get_fixtures_today, get_standings, get_tournaments, run_sql_file, get_odds
 from src.logger_config import setup_logging
+from tabs.tab_05 import render_tab_05
 
 setup_logging()
 st.set_page_config(page_title="Tenis fixtures data", layout="wide")
@@ -394,7 +395,7 @@ else:
 
 # Tabs
 
-tab1, tab2, tab3, tab4 = st.tabs(["Data", "Refresh", "Insights", "Upcoming"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["Data", "Refresh", "Insights", "Upcoming", "Full analysis"])
 
 
 
@@ -1184,3 +1185,6 @@ with tab4:
     #   upcoming_view = upcoming_view.sort_values(["event_date_only", "event_time"])
       # st.markdown("### Upcoming fixtures overview")
       # st.dataframe(upcoming_view, use_container_width=True, height=260)
+
+with tab5:
+  render_tab_05(run_sql_file)
