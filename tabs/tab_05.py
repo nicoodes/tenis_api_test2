@@ -5,6 +5,13 @@ FULL_ANALYSIS_SQL = "refresh_and_get_full_analysis.sql"
 FULL_ANALYSIS_SESSION_KEY = "tab5_full_analysis_df"
 FULL_ANALYSIS_ERROR_KEY = "tab5_full_analysis_error"
 
+CONSTANTS_SQL = "view_constants.sql"
+CONSTANTS_SESSION_KEY = "tab5_constants_df"
+CONSTANTS_ERROR_KEY = "tab5_constants_error"
+
+CONSTANTS_SMALLINT_COLS = ["c_01", "c_02", "c_03", "c_04", "pm"]
+CONSTANTS_REAL_COLS = ["c_05", "p_01", "p_02", "p_03", "p_04", "pma_vb", "pma_cons"]
+
 EVENT_STATUS_COLORS = {
   "Not yet started": "#3B76BA",
   "In progress": "#E1E346",
@@ -154,6 +161,11 @@ def render_tab_05(run_sql_file_fn) -> None:
   if FULL_ANALYSIS_ERROR_KEY not in st.session_state:
     st.session_state[FULL_ANALYSIS_ERROR_KEY] = ""
 
+  if CONSTANTS_SESSION_KEY not in st.session_state:
+    st.session_state[CONSTANTS_SESSION_KEY] = None
+  if CONSTANTS_ERROR_KEY not in st.session_state:
+    st.session_state[CONSTANTS_ERROR_KEY] = ""
+
   if st.button("Run full analysis", type="primary", key="tab5_run_full_analysis"):
     with st.spinner("Running full analysis query..."):
       response = run_sql_file_fn(FULL_ANALYSIS_SQL)
@@ -168,6 +180,19 @@ def render_tab_05(run_sql_file_fn) -> None:
         st.session_state[FULL_ANALYSIS_SESSION_KEY] = None
         st.session_state[FULL_ANALYSIS_ERROR_KEY] = response.get(
           "message", "Error running full analysis query"
+        )
+
+      constants_response = run_sql_file_fn(CONSTANTS_SQL)
+      if constants_response.get("success"):
+        constants_df = pd.DataFrame(
+          constants_response.get("result") or [], columns=constants_response.get("columns") or []
+        )
+        st.session_state[CONSTANTS_SESSION_KEY] = constants_df
+        st.session_state[CONSTANTS_ERROR_KEY] = ""
+      else:
+        st.session_state[CONSTANTS_SESSION_KEY] = None
+        st.session_state[CONSTANTS_ERROR_KEY] = constants_response.get(
+          "message", "Error running constants query"
         )
 
   error_message = st.session_state.get(FULL_ANALYSIS_ERROR_KEY, "")
@@ -290,3 +315,40 @@ def render_tab_05(run_sql_file_fn) -> None:
 
   with st.expander("Show full analysis data"):
     st.dataframe(filtered_df, use_container_width=True, hide_index=True, height=560)
+
+  st.markdown("---")
+  st.markdown("#### Constants")
+
+  constants_error = st.session_state.get(CONSTANTS_ERROR_KEY, "")
+  if constants_error:
+    st.error(constants_error)
+
+  constants_df = st.session_state.get(CONSTANTS_SESSION_KEY)
+  if constants_df is not None and not constants_df.empty and "nombre_constante" in constants_df.columns:
+    nombre_options = constants_df["nombre_constante"].dropna().tolist()
+    default_idx = nombre_options.index("default") if "default" in nombre_options else 0
+    selected_nombre = st.selectbox(
+      "nombre_constante",
+      options=nombre_options,
+      index=default_idx,
+      key="tab5_constants_selector",
+    )
+    selected_row = constants_df[constants_df["nombre_constante"] == selected_nombre].iloc[0]
+
+    st.markdown("**c values**")
+    c_cols = st.columns(5)
+    for i, col_name in enumerate(["c_01", "c_02", "c_03", "c_04", "c_05"]):
+      if col_name in selected_row.index and pd.notna(selected_row[col_name]):
+        if col_name in CONSTANTS_SMALLINT_COLS:
+          c_cols[i].number_input(col_name, value=int(selected_row[col_name]), step=1, key=f"tab5_const_{col_name}")
+        else:
+          c_cols[i].number_input(col_name, value=float(selected_row[col_name]), step=0.01, key=f"tab5_const_{col_name}")
+
+    st.markdown("**p values & monto**")
+    p_cols = st.columns(7)
+    for i, col_name in enumerate(["p_01", "p_02", "p_03", "p_04", "pma_vb", "pma_cons", "pm"]):
+      if col_name in selected_row.index and pd.notna(selected_row[col_name]):
+        if col_name in CONSTANTS_SMALLINT_COLS:
+          p_cols[i].number_input(col_name, value=int(selected_row[col_name]), step=1, key=f"tab5_const_{col_name}")
+        else:
+          p_cols[i].number_input(col_name, value=float(selected_row[col_name]), step=0.01, key=f"tab5_const_{col_name}")
