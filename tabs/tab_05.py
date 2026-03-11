@@ -324,31 +324,55 @@ def render_tab_05(run_sql_file_fn) -> None:
     st.error(constants_error)
 
   constants_df = st.session_state.get(CONSTANTS_SESSION_KEY)
-  if constants_df is not None and not constants_df.empty and "nombre_constante" in constants_df.columns:
-    nombre_options = constants_df["nombre_constante"].dropna().tolist()
+  if constants_df is None or constants_df.empty:
+    st.info("Press 'Run full analysis' to load constants.")
+    return
+
+  if "nombre_constante" not in constants_df.columns:
+    st.warning("Missing column in constants data: nombre_constante")
+    return
+
+  nombre_options = constants_df["nombre_constante"].dropna().drop_duplicates().tolist()
+  if not nombre_options:
+    st.info("No constants profiles available.")
+    return
+
+  if "default" in nombre_options:
+    nombre_options = ["default"] + [
+      option for option in nombre_options if option != "default"
+    ]
+
     default_idx = nombre_options.index("default") if "default" in nombre_options else 0
-    selected_nombre = st.selectbox(
-      "nombre_constante",
-      options=nombre_options,
-      index=default_idx,
-      key="tab5_constants_selector",
-    )
-    selected_row = constants_df[constants_df["nombre_constante"] == selected_nombre].iloc[0]
+  selected_nombre = st.selectbox(
+    "nombre_constante",
+    options=nombre_options,
+    index=default_idx,
+    key="tab5_constants_selector",
+  )
 
-    st.markdown("**c values**")
-    c_cols = st.columns(5)
-    for i, col_name in enumerate(["c_01", "c_02", "c_03", "c_04", "c_05"]):
-      if col_name in selected_row.index and pd.notna(selected_row[col_name]):
-        if col_name in CONSTANTS_SMALLINT_COLS:
-          c_cols[i].number_input(col_name, value=int(selected_row[col_name]), step=1, key=f"tab5_const_{col_name}")
-        else:
-          c_cols[i].number_input(col_name, value=float(selected_row[col_name]), step=0.01, key=f"tab5_const_{col_name}")
+  filtered_constants_df = constants_df[
+    constants_df["nombre_constante"] == selected_nombre
+  ].copy()
+  if filtered_constants_df.empty:
+    st.info(f"No constants found for '{selected_nombre}'.")
+    return
 
-    st.markdown("**p values & monto**")
-    p_cols = st.columns(7)
-    for i, col_name in enumerate(["p_01", "p_02", "p_03", "p_04", "pma_vb", "pma_cons", "pm"]):
-      if col_name in selected_row.index and pd.notna(selected_row[col_name]):
-        if col_name in CONSTANTS_SMALLINT_COLS:
-          p_cols[i].number_input(col_name, value=int(selected_row[col_name]), step=1, key=f"tab5_const_{col_name}")
-        else:
-          p_cols[i].number_input(col_name, value=float(selected_row[col_name]), step=0.01, key=f"tab5_const_{col_name}")
+  selected_row = filtered_constants_df.iloc[0]
+
+  # st.markdown("**c values**")
+  c_cols = st.columns(5)
+  for i, col_name in enumerate(["c_01", "c_02", "c_03", "c_04", "c_05"]):
+    if col_name in selected_row.index and pd.notna(selected_row[col_name]):
+      if col_name in CONSTANTS_SMALLINT_COLS:
+        c_cols[i].number_input(col_name, value=int(selected_row[col_name]), step=1, key=f"tab5_const_{selected_nombre}_{col_name}")
+      else:
+        c_cols[i].number_input(col_name, value=float(selected_row[col_name]), step=0.01, key=f"tab5_const_{selected_nombre}_{col_name}")
+
+  # st.markdown("**p values & monto**")
+  p_cols = st.columns(7)
+  for i, col_name in enumerate(["p_01", "p_02", "p_03", "p_04", "pma_vb", "pma_cons", "pm"]):
+    if col_name in selected_row.index and pd.notna(selected_row[col_name]):
+      if col_name in CONSTANTS_SMALLINT_COLS:
+        p_cols[i].number_input(col_name, value=int(selected_row[col_name]), step=1, key=f"tab5_const_{selected_nombre}_{col_name}")
+      else:
+        p_cols[i].number_input(col_name, value=float(selected_row[col_name]), step=0.01, key=f"tab5_const_{selected_nombre}_{col_name}")
