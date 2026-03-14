@@ -85,9 +85,9 @@ def _plot_count(px, go, group_df: pd.DataFrame, group: str, x_label: str) -> Non
     color_map = {"Won": "#2ECC71", "Lost": "#E74C3C", "Unknown": "#BDC3C7"}
 
     if group in HORIZONTAL_TOP10_GROUPS:
-        # Order bars by total count descending
+        # ascending=False → highest count first in list → rendered at top by Plotly
         order = (
-            gdf.sort_values("_total_count", ascending=True)["group_value"].tolist()
+            gdf.sort_values("_total_count", ascending=False)["group_value"].tolist()
         )
         fig = px.bar(
             melted,
@@ -132,7 +132,7 @@ def _plot_winrate(px, group_df: pd.DataFrame, group: str, x_label: str) -> None:
 
     if group in HORIZONTAL_TOP10_GROUPS:
         order = (
-            group_df.sort_values("_total_count", ascending=True)["group_value"].tolist()
+            group_df.sort_values("_total_count", ascending=False)["group_value"].tolist()
         )
         fig = px.bar(
             melted,
@@ -164,8 +164,14 @@ def _plot_winrate(px, group_df: pd.DataFrame, group: str, x_label: str) -> None:
 
 
 def _plot_profitloss(go, group_df: pd.DataFrame, group: str, x_label: str) -> None:
-    pl_values = pd.to_numeric(group_df["total_profit_loss"], errors="coerce").tolist()
-    labels = group_df["group_value"].astype(str).tolist()
+    if group in HORIZONTAL_TOP10_GROUPS:
+        # sort ascending so highest-count row is last → rendered at the top in horizontal charts
+        plot_df = group_df.sort_values("_total_count", ascending=True)
+    else:
+        plot_df = group_df
+
+    pl_values = pd.to_numeric(plot_df["total_profit_loss"], errors="coerce").tolist()
+    labels = plot_df["group_value"].astype(str).tolist()
     bar_colors = ["#2ECC71" if (v or 0) >= 0 else "#E74C3C" for v in pl_values]
 
     if group in HORIZONTAL_TOP10_GROUPS:
