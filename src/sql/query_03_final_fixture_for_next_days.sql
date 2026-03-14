@@ -24,6 +24,92 @@
  * */
 
 begin;
+
+drop table if exists odds_pivoted_temp;
+create temp table odds_pivoted_temp as
+with odds_pivoted as (
+	select
+	    event_key,
+	    max(case when betting_house='10Bet' then home_odds else null end) as "10bet_hm_odds",
+	    max(case when betting_house='10Bet' then away_odds else null end) as "10bet_aw_odds",
+	    max(case when betting_house='188bet' then home_odds else null end) as "188bet_hm_odds",
+	    max(case when betting_house='188bet' then away_odds else null end) as "188bet_aw_odds",
+	    max(case when betting_house='1xBet' then home_odds else null end) as "1xbet_hm_odds",
+	    max(case when betting_house='1xBet' then away_odds else null end) as "1xbet_aw_odds",
+	    max(case when betting_house='888Sport' then home_odds else null end) as "888sport_hm_odds",
+	    max(case when betting_house='888Sport' then away_odds else null end) as "888sport_aw_odds",
+	    max(case when betting_house='bet365' then home_odds else null end) as "bet365_hm_odds",
+	    max(case when betting_house='bet365' then away_odds else null end) as "bet365_aw_odds",
+	    max(case when betting_house='Betano' then home_odds else null end) as "betano_hm_odds",
+	    max(case when betting_house='Betano' then away_odds else null end) as "betano_aw_odds",
+	    max(case when betting_house='Betfair' then home_odds else null end) as "betfair_hm_odds",
+	    max(case when betting_house='Betfair' then away_odds else null end) as "betfair_aw_odds",
+	    max(case when betting_house='Marathon' then home_odds else null end) as "marathon_hm_odds",
+	    max(case when betting_house='Marathon' then away_odds else null end) as "marathon_aw_odds",
+	    max(case when betting_house='Pncl' then home_odds else null end) as "pncl_hm_odds",
+	    max(case when betting_house='Pncl' then away_odds else null end) as "pncl_aw_odds",
+	    max(case when betting_house='Sbo' then home_odds else null end) as "sbo_hm_odds",
+	    max(case when betting_house='Sbo' then away_odds else null end) as "sbo_aw_odds",
+	    max(case when betting_house='Superbet' then home_odds else null end) as "superbet_hm_odds",
+	    max(case when betting_house='Superbet' then away_odds else null end) as "superbet_aw_odds",
+	    max(case when betting_house='Unibet' then home_odds else null end) as "unibet_hm_odds",
+	    max(case when betting_house='Unibet' then away_odds else null end) as "unibet_aw_odds",
+	    max(case when betting_house='WilliamHill' then home_odds else null end) as "williamhill_hm_odds",
+	    max(case when betting_house='WilliamHill' then away_odds else null end) as "williamhill_aw_odds"
+	from tenis_api.odds_for_today
+	group by 1
+)
+select
+    *,
+    coalesce(
+	    "bet365_hm_odds",
+	    round(
+	        (coalesce("10bet_hm_odds", 0) + coalesce("188bet_hm_odds", 0) + coalesce("1xbet_hm_odds", 0) + coalesce("888sport_hm_odds", 0)
+	        + coalesce("betano_hm_odds", 0) + coalesce("betfair_hm_odds", 0) + coalesce("marathon_hm_odds", 0)
+	        + coalesce("pncl_hm_odds", 0) + coalesce("sbo_hm_odds", 0) + coalesce("superbet_hm_odds", 0) + coalesce("unibet_hm_odds", 0)
+	        + coalesce("williamhill_hm_odds", 0))
+	        / nullif(
+	            (case when "10bet_hm_odds"      is not null then 1 else 0 end +
+	             case when "188bet_hm_odds"      is not null then 1 else 0 end +
+	             case when "1xbet_hm_odds"       is not null then 1 else 0 end +
+	             case when "888sport_hm_odds"    is not null then 1 else 0 end +
+	             case when "betano_hm_odds"      is not null then 1 else 0 end +
+	             case when "betfair_hm_odds"     is not null then 1 else 0 end +
+	             case when "marathon_hm_odds"    is not null then 1 else 0 end +
+	             case when "pncl_hm_odds"        is not null then 1 else 0 end +
+	             case when "sbo_hm_odds"         is not null then 1 else 0 end +
+	             case when "superbet_hm_odds"    is not null then 1 else 0 end +
+	             case when "unibet_hm_odds"      is not null then 1 else 0 end +
+	             case when "williamhill_hm_odds" is not null then 1 else 0 end),
+	        0),
+	    2)
+	) as home_odds,
+    coalesce(
+	    "bet365_aw_odds",
+	    round(
+	        (coalesce("10bet_aw_odds", 0) + coalesce("188bet_aw_odds", 0) + coalesce("1xbet_aw_odds", 0) + coalesce("888sport_aw_odds", 0)
+	        + coalesce("betano_aw_odds", 0) + coalesce("betfair_aw_odds", 0) + coalesce("marathon_aw_odds", 0)
+	        + coalesce("pncl_aw_odds", 0) + coalesce("sbo_aw_odds", 0) + coalesce("superbet_aw_odds", 0) + coalesce("unibet_aw_odds", 0)
+	        + coalesce("williamhill_aw_odds", 0))
+	        / nullif(
+	            (case when "10bet_aw_odds"       is not null then 1 else 0 end +
+	             case when "188bet_aw_odds"      is not null then 1 else 0 end +
+	             case when "1xbet_aw_odds"       is not null then 1 else 0 end +
+	             case when "888sport_aw_odds"    is not null then 1 else 0 end +
+	             case when "betano_aw_odds"      is not null then 1 else 0 end +
+	             case when "betfair_aw_odds"     is not null then 1 else 0 end +
+	             case when "marathon_aw_odds"    is not null then 1 else 0 end +
+	             case when "pncl_aw_odds"        is not null then 1 else 0 end +
+	             case when "sbo_aw_odds"         is not null then 1 else 0 end +
+	             case when "superbet_aw_odds"    is not null then 1 else 0 end +
+	             case when "unibet_aw_odds"      is not null then 1 else 0 end +
+	             case when "williamhill_aw_odds" is not null then 1 else 0 end),
+	        0),
+	    2)
+	) as away_odds
+from odds_pivoted;
+
+
 --- query
 --drop table if exists tenis_api.main_todays_games_details;
 --create table tenis_api.main_todays_games_details as
@@ -140,9 +226,8 @@ select
 from full_rendim f
 left join tenis_api.stg_h2h_for_today_processed h
 	on f.first_player_key=h.first_player_key and f.second_player_key=h.second_player_key
-left join tenis_api.odds_for_today o
-		on f.event_key=o.event_key
-		and betting_house='bet365';
+left join odds_pivoted_temp o -- TEMP TABLE NOW
+		on f.event_key=o.event_key;
 
 commit;
 
