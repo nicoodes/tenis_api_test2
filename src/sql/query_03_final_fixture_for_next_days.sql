@@ -156,14 +156,14 @@ with fixture_data as (
 add_players_info as (
 	select
 		fd.*,
-		p1s.wins_sourface as p1_wins_sourface,
-		p1s.losses_sourface as p1_losses_sourface,
-		p2s.wins_sourface as p2_wins_sourface,
-		p2s.losses_sourface as p2_losses_sourface,
-		p1a.wins_all as p1_wins_all,
-		p1a.losses_all as p1_losses_all,
-		p2a.wins_all as p2_wins_all,
-		p2a.losses_all as p2_losses_all,
+		coalesce(p1s.wins_sourface, 0) as p1_wins_sourface,
+		coalesce(p1s.losses_sourface, 0) as p1_losses_sourface,
+		coalesce(p2s.wins_sourface, 0) as p2_wins_sourface,
+		coalesce(p2s.losses_sourface, 0) as p2_losses_sourface,
+		coalesce(p1a.wins_all, 0) as p1_wins_all,
+		coalesce(p1a.losses_all, 0) as p1_losses_all,
+		coalesce(p2a.wins_all, 0) as p2_wins_all,
+		coalesce(p2a.losses_all, 0) as p2_losses_all,
 		coalesce(sp1.points, '0') as p1_points,
 		coalesce(sp2.points, '0') as p2_points
 	from fixture_data fd
