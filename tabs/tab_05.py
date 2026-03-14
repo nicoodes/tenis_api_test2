@@ -1,5 +1,6 @@
 import pandas as pd
 import streamlit as st
+from src.tenis_api import run_swl_query
 
 FULL_ANALYSIS_SQL = "refresh_and_get_full_analysis.sql"
 FULL_ANALYSIS_SESSION_KEY = "tab5_full_analysis_df"
@@ -11,6 +12,13 @@ CONSTANTS_ERROR_KEY = "tab5_constants_error"
 
 CONSTANTS_SMALLINT_COLS = ["c_01", "c_02", "c_03", "c_04", "pm"]
 CONSTANTS_REAL_COLS = ["c_05", "p_01", "p_02", "p_03", "p_04", "pma_vb", "pma_cons"]
+
+CONSTANTS_INSERT_SQL = """
+INSERT INTO tenis_api.constants_main
+VALUES (
+  %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, current_timestamp
+)
+"""
 
 EVENT_STATUS_COLORS = {
   "Not yet started": "#3B76BA",
@@ -342,7 +350,7 @@ def render_tab_05(run_sql_file_fn) -> None:
       option for option in nombre_options if option != "default"
     ]
 
-    default_idx = nombre_options.index("default") if "default" in nombre_options else 0
+  default_idx = nombre_options.index("default") if "default" in nombre_options else 0
   selected_nombre = st.selectbox(
     "nombre_constante",
     options=nombre_options,
@@ -359,20 +367,64 @@ def render_tab_05(run_sql_file_fn) -> None:
 
   selected_row = filtered_constants_df.iloc[0]
 
-  # st.markdown("**c values**")
+  current_values = {"nombre_constante": selected_nombre}
+
   c_cols = st.columns(5)
   for i, col_name in enumerate(["c_01", "c_02", "c_03", "c_04", "c_05"]):
     if col_name in selected_row.index and pd.notna(selected_row[col_name]):
       if col_name in CONSTANTS_SMALLINT_COLS:
-        c_cols[i].number_input(col_name, value=int(selected_row[col_name]), step=1, key=f"tab5_const_{selected_nombre}_{col_name}")
+        current_values[col_name] = c_cols[i].number_input(
+          col_name,
+          value=int(selected_row[col_name]),
+          step=1,
+          key=f"tab5_const_{selected_nombre}_{col_name}",
+        )
       else:
-        c_cols[i].number_input(col_name, value=float(selected_row[col_name]), step=0.01, key=f"tab5_const_{selected_nombre}_{col_name}")
+        current_values[col_name] = c_cols[i].number_input(
+          col_name,
+          value=float(selected_row[col_name]),
+          step=0.01,
+          key=f"tab5_const_{selected_nombre}_{col_name}",
+        )
 
-  # st.markdown("**p values & monto**")
   p_cols = st.columns(7)
   for i, col_name in enumerate(["p_01", "p_02", "p_03", "p_04", "pma_vb", "pma_cons", "pm"]):
     if col_name in selected_row.index and pd.notna(selected_row[col_name]):
       if col_name in CONSTANTS_SMALLINT_COLS:
-        p_cols[i].number_input(col_name, value=int(selected_row[col_name]), step=1, key=f"tab5_const_{selected_nombre}_{col_name}")
+        current_values[col_name] = p_cols[i].number_input(
+          col_name,
+          value=int(selected_row[col_name]),
+          step=1,
+          key=f"tab5_const_{selected_nombre}_{col_name}",
+        )
       else:
-        p_cols[i].number_input(col_name, value=float(selected_row[col_name]), step=0.01, key=f"tab5_const_{selected_nombre}_{col_name}")
+        current_values[col_name] = p_cols[i].number_input(
+          col_name,
+          value=float(selected_row[col_name]),
+          step=0.01,
+          key=f"tab5_const_{selected_nombre}_{col_name}",
+        )
+
+  st.markdown("---")
+  if st.button("Insert current constants", key="tab5_insert_constants", type="primary"):
+    params = (
+      current_values.get("nombre_constante"),
+      current_values.get("c_01"),
+      current_values.get("c_02"),
+      current_values.get("c_03"),
+      current_values.get("c_04"),
+      current_values.get("c_05"),
+      current_values.get("p_01"),
+      current_values.get("p_02"),
+      current_values.get("p_03"),
+      current_values.get("p_04"),
+      current_values.get("pma_vb"),
+      current_values.get("pma_cons"),
+      current_values.get("pm"),
+    )
+
+    insert_response = run_swl_query(CONSTANTS_INSERT_SQL, params=params)
+    if insert_response.get("success"):
+      st.success("Constants inserted into tenis_api.constants_main")
+    else:
+      st.error(insert_response.get("message", "Error inserting constants"))
