@@ -117,7 +117,7 @@ def _build_filters(df: pd.DataFrame) -> pd.DataFrame:
 
   type_filtered_df = _filter_equals(date_filtered_df, "event_type", selected_event_type)
 
-  row_2_col_1, row_2_col_2, row_2_col_3 = st.columns(3)
+  row_2_col_1, row_2_col_2, row_2_col_3, row_2_col_4 = st.columns(4)
 
   event_status_options = ["All"]
   if "event_status" in type_filtered_df.columns:
@@ -148,17 +148,41 @@ def _build_filters(df: pd.DataFrame) -> pd.DataFrame:
     elif selected_flag_filter == "Ok":
       flag_filtered_df = status_filtered_df[normalized_flag == 0]
 
+  selected_bet_filter = row_2_col_3.pills(
+    "To bet",
+    options=["All", "Con apuesta", "Sin apuesta"],
+    default="Con apuesta",
+    selection_mode="single",
+    key="tab5_filter_to_bet",
+  )
+
+  bet_filtered_df = flag_filtered_df
+  if selected_bet_filter == "Con apuesta":
+    bet_mask = pd.Series([False] * len(bet_filtered_df), index=bet_filtered_df.index)
+    if "jugador_a_apostar_cons" in bet_filtered_df.columns:
+      bet_mask = bet_mask | (bet_filtered_df["jugador_a_apostar_cons"] != "Sin apuesta")
+    if "jugador_a_apostar_vb" in bet_filtered_df.columns:
+      bet_mask = bet_mask | (bet_filtered_df["jugador_a_apostar_vb"] != "Sin apuesta")
+    bet_filtered_df = bet_filtered_df[bet_mask]
+  elif selected_bet_filter == "Sin apuesta":
+    bet_mask = pd.Series([True] * len(bet_filtered_df), index=bet_filtered_df.index)
+    if "jugador_a_apostar_cons" in bet_filtered_df.columns:
+      bet_mask = bet_mask & (bet_filtered_df["jugador_a_apostar_cons"] == "Sin apuesta")
+    if "jugador_a_apostar_vb" in bet_filtered_df.columns:
+      bet_mask = bet_mask & (bet_filtered_df["jugador_a_apostar_vb"] == "Sin apuesta")
+    bet_filtered_df = bet_filtered_df[bet_mask]
+
   tournament_options = []
-  if "tournament_name" in flag_filtered_df.columns:
-    tournament_options = _sorted_unique_values(flag_filtered_df["tournament_name"])
-  selected_tournaments = row_2_col_3.multiselect(
+  if "tournament_name" in bet_filtered_df.columns:
+    tournament_options = _sorted_unique_values(bet_filtered_df["tournament_name"])
+  selected_tournaments = row_2_col_4.multiselect(
     "tournament_name",
     options=tournament_options,
     default=[],
     key="tab5_filter_tournament_name",
   )
 
-  out = flag_filtered_df
+  out = bet_filtered_df
   if selected_tournaments and "tournament_name" in out.columns:
     out = out[out["tournament_name"].isin(selected_tournaments)]
 
