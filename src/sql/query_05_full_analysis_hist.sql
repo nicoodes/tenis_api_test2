@@ -19,8 +19,8 @@ begin;
 refresh materialized view tenis_api.main_todays_analysis;
 
 delete from tenis_api.full_analysis_hist
-where event_key in (
-  select event_key from tenis_api.main_todays_analysis
+where event_date in (
+  select event_date from tenis_api.main_todays_analysis
   where jugador_a_apostar_cons<>'Sin apuesta' or jugador_a_apostar_vb<>'Sin apuesta'
   );
 
