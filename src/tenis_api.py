@@ -24,6 +24,62 @@ SQL_DIR = Path(__file__).parent / "sql"  # added
 
 API_KEY = get_secret("API_KEY")
 
+
+def run_swl_query(query: str, params=None) -> dict:
+    """Run a raw SQL query string with optional params.
+
+    This helper is intentionally simple and independent from run_sql_file.
+    """
+    if not query or not query.strip():
+        return {
+            "success": False,
+            "message": "Query is empty",
+            "result": None,
+            "columns": None,
+        }
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute(query, params)
+
+        if cursor.description:
+            result = cursor.fetchall()
+            columns = [desc[0] for desc in cursor.description]
+            return {
+                "success": True,
+                "message": f"Query executed successfully. Rows returned: {len(result)}",
+                "result": result,
+                "columns": columns,
+            }
+
+        connection.commit()
+        return {
+            "success": True,
+            "message": f"Query executed successfully. Rows affected: {cursor.rowcount}",
+            "result": None,
+            "columns": None,
+        }
+
+    except Exception as e:
+        if connection:
+            connection.rollback()
+        return {
+            "success": False,
+            "message": f"Failed to execute query: {str(e)}",
+            "result": None,
+            "columns": None,
+        }
+
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
 def run_sql_file(filename: str) -> dict:
     """
     Read and execute a SQL query from a file in the sql/ directory.

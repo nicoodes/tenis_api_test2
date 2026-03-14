@@ -1,9 +1,24 @@
 import pandas as pd
 import streamlit as st
+from src.tenis_api import run_swl_query
 
 FULL_ANALYSIS_SQL = "refresh_and_get_full_analysis.sql"
 FULL_ANALYSIS_SESSION_KEY = "tab5_full_analysis_df"
 FULL_ANALYSIS_ERROR_KEY = "tab5_full_analysis_error"
+
+CONSTANTS_SQL = "view_constants.sql"
+CONSTANTS_SESSION_KEY = "tab5_constants_df"
+CONSTANTS_ERROR_KEY = "tab5_constants_error"
+
+CONSTANTS_SMALLINT_COLS = ["c_01", "c_02", "c_03", "c_04", "pm"]
+CONSTANTS_REAL_COLS = ["c_05", "p_01", "p_02", "p_03", "p_04", "pma_vb", "pma_cons"]
+
+CONSTANTS_INSERT_SQL = """
+INSERT INTO tenis_api.constants_main
+VALUES (
+  %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, current_timestamp
+)
+"""
 
 EVENT_STATUS_COLORS = {
   "Not yet started": "#3B76BA",
@@ -154,6 +169,11 @@ def render_tab_05(run_sql_file_fn) -> None:
   if FULL_ANALYSIS_ERROR_KEY not in st.session_state:
     st.session_state[FULL_ANALYSIS_ERROR_KEY] = ""
 
+  if CONSTANTS_SESSION_KEY not in st.session_state:
+    st.session_state[CONSTANTS_SESSION_KEY] = None
+  if CONSTANTS_ERROR_KEY not in st.session_state:
+    st.session_state[CONSTANTS_ERROR_KEY] = ""
+
   if st.button("Run full analysis", type="primary", key="tab5_run_full_analysis"):
     with st.spinner("Running full analysis query..."):
       response = run_sql_file_fn(FULL_ANALYSIS_SQL)
@@ -168,6 +188,19 @@ def render_tab_05(run_sql_file_fn) -> None:
         st.session_state[FULL_ANALYSIS_SESSION_KEY] = None
         st.session_state[FULL_ANALYSIS_ERROR_KEY] = response.get(
           "message", "Error running full analysis query"
+        )
+
+      constants_response = run_sql_file_fn(CONSTANTS_SQL)
+      if constants_response.get("success"):
+        constants_df = pd.DataFrame(
+          constants_response.get("result") or [], columns=constants_response.get("columns") or []
+        )
+        st.session_state[CONSTANTS_SESSION_KEY] = constants_df
+        st.session_state[CONSTANTS_ERROR_KEY] = ""
+      else:
+        st.session_state[CONSTANTS_SESSION_KEY] = None
+        st.session_state[CONSTANTS_ERROR_KEY] = constants_response.get(
+          "message", "Error running constants query"
         )
 
   error_message = st.session_state.get(FULL_ANALYSIS_ERROR_KEY, "")
@@ -290,3 +323,108 @@ def render_tab_05(run_sql_file_fn) -> None:
 
   with st.expander("Show full analysis data"):
     st.dataframe(filtered_df, use_container_width=True, hide_index=True, height=560)
+
+  st.markdown("---")
+  st.markdown("#### Constants")
+
+  constants_error = st.session_state.get(CONSTANTS_ERROR_KEY, "")
+  if constants_error:
+    st.error(constants_error)
+
+  constants_df = st.session_state.get(CONSTANTS_SESSION_KEY)
+  if constants_df is None or constants_df.empty:
+    st.info("Press 'Run full analysis' to load constants.")
+    return
+
+  if "nombre_constante" not in constants_df.columns:
+    st.warning("Missing column in constants data: nombre_constante")
+    return
+
+  nombre_options = constants_df["nombre_constante"].dropna().drop_duplicates().tolist()
+  if not nombre_options:
+    st.info("No constants profiles available.")
+    return
+
+  if "default" in nombre_options:
+    nombre_options = ["default"] + [
+      option for option in nombre_options if option != "default"
+    ]
+
+  default_idx = nombre_options.index("default") if "default" in nombre_options else 0
+  selected_nombre = st.selectbox(
+    "nombre_constante",
+    options=nombre_options,
+    index=default_idx,
+    key="tab5_constants_selector",
+  )
+
+  filtered_constants_df = constants_df[
+    constants_df["nombre_constante"] == selected_nombre
+  ].copy()
+  if filtered_constants_df.empty:
+    st.info(f"No constants found for '{selected_nombre}'.")
+    return
+
+  selected_row = filtered_constants_df.iloc[0]
+
+  current_values = {"nombre_constante": selected_nombre}
+
+  c_cols = st.columns(5)
+  for i, col_name in enumerate(["c_01", "c_02", "c_03", "c_04", "c_05"]):
+    if col_name in selected_row.index and pd.notna(selected_row[col_name]):
+      if col_name in CONSTANTS_SMALLINT_COLS:
+        current_values[col_name] = c_cols[i].number_input(
+          col_name,
+          value=int(selected_row[col_name]),
+          step=1,
+          key=f"tab5_const_{selected_nombre}_{col_name}",
+        )
+      else:
+        current_values[col_name] = c_cols[i].number_input(
+          col_name,
+          value=float(selected_row[col_name]),
+          step=0.01,
+          key=f"tab5_const_{selected_nombre}_{col_name}",
+        )
+
+  p_cols = st.columns(7)
+  for i, col_name in enumerate(["p_01", "p_02", "p_03", "p_04", "pma_vb", "pma_cons", "pm"]):
+    if col_name in selected_row.index and pd.notna(selected_row[col_name]):
+      if col_name in CONSTANTS_SMALLINT_COLS:
+        current_values[col_name] = p_cols[i].number_input(
+          col_name,
+          value=int(selected_row[col_name]),
+          step=1,
+          key=f"tab5_const_{selected_nombre}_{col_name}",
+        )
+      else:
+        current_values[col_name] = p_cols[i].number_input(
+          col_name,
+          value=float(selected_row[col_name]),
+          step=0.01,
+          key=f"tab5_const_{selected_nombre}_{col_name}",
+        )
+
+  st.markdown("---")
+  if st.button("Insert current constants", key="tab5_insert_constants", type="primary"):
+    params = (
+      current_values.get("nombre_constante"),
+      current_values.get("c_01"),
+      current_values.get("c_02"),
+      current_values.get("c_03"),
+      current_values.get("c_04"),
+      current_values.get("c_05"),
+      current_values.get("p_01"),
+      current_values.get("p_02"),
+      current_values.get("p_03"),
+      current_values.get("p_04"),
+      current_values.get("pma_vb"),
+      current_values.get("pma_cons"),
+      current_values.get("pm"),
+    )
+
+    insert_response = run_swl_query(CONSTANTS_INSERT_SQL, params=params)
+    if insert_response.get("success"):
+      st.success("Constants inserted into tenis_api.constants_main")
+    else:
+      st.error(insert_response.get("message", "Error inserting constants"))
