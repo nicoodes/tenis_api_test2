@@ -507,7 +507,11 @@ def get_fixtures_today(
             pass
 
     if fetch_h2h:
-        player_pairs = df_events[["first_player_key", "second_player_key"]].drop_duplicates()
+        player_pairs = (
+            df_events[["first_player_key", "second_player_key"]]
+            .drop_duplicates()
+            .dropna(subset=["first_player_key", "second_player_key"])
+        )
 
         logging.info("Fetching H2H data for %s player pairs asynchronously...", len(player_pairs))
 

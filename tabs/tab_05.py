@@ -10,6 +10,9 @@ CONSTANTS_SQL = "view_constants.sql"
 CONSTANTS_SESSION_KEY = "tab5_constants_df"
 CONSTANTS_ERROR_KEY = "tab5_constants_error"
 
+FULL_ANALYSIS_HIST_SQL = "query_05_full_analysis_hist.sql"
+FULL_ANALYSIS_HIST_ERROR_KEY = "tab5_full_analysis_hist_error"
+
 CONSTANTS_SMALLINT_COLS = ["c_01", "c_02", "c_03", "c_04", "pm"]
 CONSTANTS_REAL_COLS = ["c_05", "p_01", "p_02", "p_03", "p_04", "pma_vb", "pma_cons"]
 
@@ -174,6 +177,9 @@ def render_tab_05(run_sql_file_fn) -> None:
   if CONSTANTS_ERROR_KEY not in st.session_state:
     st.session_state[CONSTANTS_ERROR_KEY] = ""
 
+  if FULL_ANALYSIS_HIST_ERROR_KEY not in st.session_state:
+    st.session_state[FULL_ANALYSIS_HIST_ERROR_KEY] = ""
+
   if st.button("Run full analysis", type="primary", key="tab5_run_full_analysis"):
     with st.spinner("Running full analysis query..."):
       response = run_sql_file_fn(FULL_ANALYSIS_SQL)
@@ -203,9 +209,22 @@ def render_tab_05(run_sql_file_fn) -> None:
           "message", "Error running constants query"
         )
 
+      hist_response = run_sql_file_fn(FULL_ANALYSIS_HIST_SQL)
+      if hist_response.get("success"):
+        st.session_state[FULL_ANALYSIS_HIST_ERROR_KEY] = ""
+        st.success("Historical analysis updated (query 05).")
+      else:
+        st.session_state[FULL_ANALYSIS_HIST_ERROR_KEY] = hist_response.get(
+          "message", "Error running historical analysis query"
+        )
+
   error_message = st.session_state.get(FULL_ANALYSIS_ERROR_KEY, "")
   if error_message:
     st.error(error_message)
+
+  hist_error_message = st.session_state.get(FULL_ANALYSIS_HIST_ERROR_KEY, "")
+  if hist_error_message:
+    st.error(hist_error_message)
 
   source_df = st.session_state.get(FULL_ANALYSIS_SESSION_KEY)
   if source_df is None:
