@@ -45,6 +45,7 @@ SUMMARY_COLUMNS = [
   "monto_apuesta_cons",
   "p1_odds",
   "p2_odds",
+  "result_bet",
   "flag_low_bet_value",
 ]
 
@@ -313,6 +314,12 @@ def render_tab_05(run_sql_file_fn) -> None:
           help="Stake amount for conservative model",
           format="%.2f",
           required=True,
+        ),
+        "result_bet": st.column_config.MultiselectColumn(
+          "Result Bet",
+          help="Bet result",
+          options=["won", "lost", "unkn"],
+          color=["#2e7d32", "#c62828", "#fff9c4"],
         ),
         "flag_low_bet_value": st.column_config.CheckboxColumn(
           "Low Bet Flag",
