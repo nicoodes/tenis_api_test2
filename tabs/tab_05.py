@@ -453,6 +453,7 @@ def render_tab_05(run_sql_file_fn) -> None:
           value=float(selected_row[col_name]),
           step=0.01,
           key=f"tab5_const_{selected_nombre}_{col_name}",
+          format="%0.4f" if col_name in ["pma_vb", "pma_cons"] else "%0.2f",
         )
 
   st.markdown("---")
